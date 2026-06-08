@@ -42,7 +42,7 @@ Aplicación móvil para parejas que desean calificar películas y series juntos,
 
 1. Clonar el repositorio:
 ```bash
-git clone https://github.com/tu-usuario/duorating.git
+git clone https://github.com/daniieldz/duorating.git
 cd duorating
 ```
 
