@@ -1,5 +1,5 @@
-import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Tabs, Link } from "expo-router";
+import { Text, TouchableOpacity } from "react-native";
 
 export default function MainLayout() {
   return (
@@ -10,6 +10,13 @@ export default function MainLayout() {
           title: "Inicio",
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 24 }}>🏠</Text>
+          ),
+          headerRight: () => (
+            <Link href="/couple/settings" asChild>
+              <TouchableOpacity style={{ marginRight: 16 }}>
+                <Text style={{ fontSize: 20 }}>⚙️</Text>
+              </TouchableOpacity>
+            </Link>
           ),
         }}
       />
