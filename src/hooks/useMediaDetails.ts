@@ -50,7 +50,7 @@ export function useMediaDetails(id: number | null, mediaType: "movie" | "tv" | n
         setData(result as MediaDetails);
       })
       .catch((err) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Error al cargar detalles");
       })
       .finally(() => {

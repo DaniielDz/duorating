@@ -46,7 +46,7 @@ export function useSearch(query: string, mediaType: "all" | "movie" | "tv" = "al
         cache.set(cacheKey, { results: data, timestamp: Date.now() });
         setResults(data);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Error de búsqueda");
       } finally {
         setLoading(false);
