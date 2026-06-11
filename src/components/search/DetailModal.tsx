@@ -8,12 +8,12 @@ import {
   Image,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { tmdb, TMDBMovieDetails, TMDBTVDetails, TMDBTVSeasonDetails, TMDBWatchProviderItem } from "../../lib/tmdb";
 import { Rating, WatchlistItem } from "../../types";
 import * as db from "../../lib/db";
 import { RatingModal } from "../ratings/RatingModal";
+import { useToast } from "../ui/Toast";
 
 type MediaDetails = TMDBMovieDetails | TMDBTVDetails;
 
@@ -55,6 +55,7 @@ export function DetailModal({
   user1Id,
   user2Id,
 }: DetailModalProps) {
+  const { showToast } = useToast();
   const [expandedSeason, setExpandedSeason] = useState<number | null>(null);
   const [seasonData, setSeasonData] = useState<Record<string, TMDBTVSeasonDetails>>({});
   const [loadingSeason, setLoadingSeason] = useState<number | null>(null);
@@ -157,7 +158,7 @@ export function DetailModal({
       setRating(updatedRating);
       setRatingModalVisible(false);
     } catch {
-      Alert.alert("Error", "No se pudo guardar la calificación");
+      showToast("error", "No se pudo guardar la calificación");
     } finally {
       setSavingRating(false);
     }
@@ -170,9 +171,9 @@ export function DetailModal({
       await db.addToWatchlist(coupleId, item.id, mt, getTitle(item), item.poster_path, userId);
       const updated = await db.getWatchlistItem(coupleId, item.id, mt);
       setWatchlistItem(updated);
-      Alert.alert("Agregado", "Se agregó a la lista de pendientes");
+      showToast("success", "Agregado a pendientes");
     } catch {
-      Alert.alert("Error", "No se pudo agregar a pendientes");
+      showToast("error", "No se pudo agregar a pendientes");
     }
   }, [item, coupleId, userId]);
 
@@ -182,7 +183,7 @@ export function DetailModal({
       await db.removeFromWatchlist(watchlistItem.id);
       setWatchlistItem(null);
     } catch {
-      Alert.alert("Error", "No se pudo quitar de pendientes");
+      showToast("error", "No se pudo quitar de pendientes");
     }
   }, [watchlistItem]);
 

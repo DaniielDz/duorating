@@ -4,9 +4,11 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
+import { useToast } from "../../components/ui/Toast";
 
 export default function CoupleSettingsScreen() {
   const { user, couple, signOut, refreshCouple } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
