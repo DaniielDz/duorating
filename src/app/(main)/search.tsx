@@ -1,14 +1,16 @@
 import { useState, useCallback } from "react";
-import { View, Alert } from "react-native";
+import { View } from "react-native";
 import { SearchBar } from "../../components/search/SearchBar";
 import { SearchResults } from "../../components/search/SearchResults";
 import { MediaTypeFilter } from "../../components/search/MediaTypeFilter";
 import { DetailModal } from "../../components/search/DetailModal";
 import { useSearch } from "../../hooks/useSearch";
 import { useMediaDetails } from "../../hooks/useMediaDetails";
+import { useAuth } from "../../context/auth";
 import { TMDBResult } from "../../lib/tmdb";
 
 export default function SearchScreen() {
+  const { couple, user } = useAuth();
   const [query, setQuery] = useState("");
   const [mediaType, setMediaType] = useState<"all" | "movie" | "tv">("all");
   const [selectedItem, setSelectedItem] = useState<TMDBResult | null>(null);
@@ -26,14 +28,6 @@ export default function SearchScreen() {
   const handleClose = useCallback(() => {
     setSelectedItem(null);
   }, []);
-
-  const handleAddToWatchlist = useCallback(() => {
-    Alert.alert(
-      "Agregado a pendientes",
-      `${selectedItem && ("title" in selectedItem ? selectedItem.title : selectedItem.name)} se agregó a la lista.`,
-    );
-    setSelectedItem(null);
-  }, [selectedItem]);
 
   const hasSearched = query.trim().length > 0;
 
@@ -57,7 +51,10 @@ export default function SearchScreen() {
         item={details}
         loading={detailsLoading}
         onClose={handleClose}
-        onAddToWatchlist={handleAddToWatchlist}
+        coupleId={couple?.id ?? ""}
+        userId={user?.id ?? ""}
+        user1Id={couple?.user_1_id ?? ""}
+        user2Id={couple?.user_2_id ?? ""}
       />
     </View>
   );
