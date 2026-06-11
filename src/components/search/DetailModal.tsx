@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,12 @@ import {
   Image,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { tmdb, TMDBMovieDetails, TMDBTVDetails, TMDBTVSeasonDetails, TMDBWatchProviderItem } from "../../lib/tmdb";
+import { Rating, WatchlistItem } from "../../types";
+import * as db from "../../lib/db";
+import { RatingModal } from "../ratings/RatingModal";
 
 type MediaDetails = TMDBMovieDetails | TMDBTVDetails;
 
@@ -17,7 +21,10 @@ interface DetailModalProps {
   item: MediaDetails | null;
   loading: boolean;
   onClose: () => void;
-  onAddToWatchlist: () => void;
+  coupleId: string;
+  userId: string;
+  user1Id: string;
+  user2Id: string;
 }
 
 function isMovie(d: MediaDetails): d is TMDBMovieDetails {
@@ -43,39 +50,63 @@ export function DetailModal({
   item,
   loading,
   onClose,
-  onAddToWatchlist,
+  coupleId,
+  userId,
+  user1Id,
+  user2Id,
 }: DetailModalProps) {
   const [expandedSeason, setExpandedSeason] = useState<number | null>(null);
   const [seasonData, setSeasonData] = useState<Record<string, TMDBTVSeasonDetails>>({});
   const [loadingSeason, setLoadingSeason] = useState<number | null>(null);
   const [providers, setProviders] = useState<TMDBWatchProviderItem[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
+  const [rating, setRating] = useState<Rating | null>(null);
+  const [watchlistItem, setWatchlistItem] = useState<WatchlistItem | null>(null);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [savingRating, setSavingRating] = useState(false);
+
+  const isUser1 = userId === user1Id;
 
   useEffect(() => {
     setExpandedSeason(null);
     setSeasonData({});
     setLoadingSeason(null);
     setProviders([]);
+    setRating(null);
+    setWatchlistItem(null);
 
     if (!item) return;
 
-    const mediaType = "title" in item ? "movie" : "tv";
+    const mt = isMovie(item) ? "movie" : "tv";
     let cancelled = false;
 
     setLoadingProviders(true);
-    tmdb.getWatchProviders(mediaType, item.id)
+    tmdb.getWatchProviders(mt, item.id)
       .then((res) => {
         if (cancelled) return;
         const country = res.results["MX"] ?? res.results["US"];
         setProviders(country?.flatrate ?? []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!cancelled) setLoadingProviders(false);
       });
 
+    if (coupleId) {
+      Promise.all([
+        db.getRating(coupleId, item.id, mt),
+        db.getWatchlistItem(coupleId, item.id, mt),
+      ])
+        .then(([r, w]) => {
+          if (cancelled) return;
+          setRating(r);
+          setWatchlistItem(w);
+        })
+        .catch(() => { });
+    }
+
     return () => { cancelled = true; };
-  }, [item?.id]);
+  }, [item?.id, coupleId]);
 
   const toggleSeason = async (seasonNumber: number, tvId: number) => {
     const key = `${tvId}-${seasonNumber}`;
@@ -97,6 +128,70 @@ export function DetailModal({
     }
   };
 
+  const handleOpenRating = useCallback(() => {
+    setRatingModalVisible(true);
+  }, []);
+
+  const handleCloseRating = useCallback(() => {
+    setRatingModalVisible(false);
+  }, []);
+
+  const handleSaveRating = useCallback(async (score: number, comment: string | null) => {
+    if (!item || !coupleId) return;
+    const mt = isMovie(item) ? "movie" : "tv";
+    setSavingRating(true);
+    try {
+      await db.saveRating({
+        coupleId,
+        tmdbId: item.id,
+        mediaType: mt,
+        title: getTitle(item),
+        posterPath: item.poster_path,
+        userId,
+        user1Id,
+        user2Id,
+        score,
+        comment,
+      });
+      const updatedRating = await db.getRating(coupleId, item.id, mt);
+      setRating(updatedRating);
+      setRatingModalVisible(false);
+    } catch {
+      Alert.alert("Error", "No se pudo guardar la calificación");
+    } finally {
+      setSavingRating(false);
+    }
+  }, [item, coupleId, userId, user1Id, user2Id]);
+
+  const handleAddToWatchlist = useCallback(async () => {
+    if (!item || !coupleId) return;
+    const mt = isMovie(item) ? "movie" : "tv";
+    try {
+      await db.addToWatchlist(coupleId, item.id, mt, getTitle(item), item.poster_path, userId);
+      const updated = await db.getWatchlistItem(coupleId, item.id, mt);
+      setWatchlistItem(updated);
+      Alert.alert("Agregado", "Se agregó a la lista de pendientes");
+    } catch {
+      Alert.alert("Error", "No se pudo agregar a pendientes");
+    }
+  }, [item, coupleId, userId]);
+
+  const handleRemoveFromWatchlist = useCallback(async () => {
+    if (!watchlistItem) return;
+    try {
+      await db.removeFromWatchlist(watchlistItem.id);
+      setWatchlistItem(null);
+    } catch {
+      Alert.alert("Error", "No se pudo quitar de pendientes");
+    }
+  }, [watchlistItem]);
+
+  const userHasRated = rating && (isUser1 ? rating.user_1_score != null : rating.user_2_score != null);
+  const myScore = isUser1 ? rating?.user_1_score : rating?.user_2_score;
+  const partnerScore = isUser1 ? rating?.user_2_score : rating?.user_1_score;
+  const myComment = isUser1 ? rating?.user_1_comment : rating?.user_2_comment;
+  const partnerComment = isUser1 ? rating?.user_2_comment : rating?.user_1_comment;
+
   return (
     <Modal
       visible={!!item || loading}
@@ -113,7 +208,7 @@ export function DetailModal({
           <ScrollView
             className="flex-1"
             bounces={false}
-            contentContainerStyle={{ paddingBottom: 100 }}
+            contentContainerStyle={{ paddingBottom: 200 }}
           >
             <View className="relative h-56">
               {item.backdrop_path ? (
@@ -137,7 +232,7 @@ export function DetailModal({
               <Text className="text-white text-lg font-bold">✕</Text>
             </TouchableOpacity>
 
-            <View className="px-5 -mt-16">
+            <View className="px-5 -mt-12">
               <View className="flex-row">
                 {item.poster_path ? (
                   <Image
@@ -251,6 +346,44 @@ export function DetailModal({
                   <ActivityIndicator size="small" color="#3B82F6" />
                 </View>
               ) : null}
+
+              {rating && (myScore != null || partnerScore != null) && (
+                <View className="mt-6">
+                  <Text className="text-lg font-bold text-gray-900 mb-3">Calificaciones</Text>
+                  <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    {myScore != null && partnerScore != null && (
+                      <View className="items-center mb-4 pb-4 border-b border-gray-200">
+                        <Text className="text-sm text-gray-500">Promedio de la pareja</Text>
+                        <Text className="text-3xl font-bold text-yellow-600">
+                          ★ {((myScore + partnerScore) / 2).toFixed(1)}
+                        </Text>
+                      </View>
+                    )}
+                    {myScore != null && (
+                      <View className={partnerScore != null ? "mb-2" : ""}>
+                        <View className="flex-row items-center">
+                          <Text className="font-semibold text-gray-900">Tú:</Text>
+                          <Text className="ml-2 text-yellow-600 font-bold">{myScore}/10</Text>
+                        </View>
+                        {myComment && (
+                          <Text className="text-gray-600 italic mt-0.5 text-sm">"{myComment}"</Text>
+                        )}
+                      </View>
+                    )}
+                    {partnerScore != null && (
+                      <View>
+                        <View className="flex-row items-center">
+                          <Text className="font-semibold text-gray-900">Tu pareja:</Text>
+                          <Text className="ml-2 text-yellow-600 font-bold">{partnerScore}/10</Text>
+                        </View>
+                        {partnerComment && (
+                          <Text className="text-gray-600 italic mt-0.5 text-sm">"{partnerComment}"</Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
 
               {isTV(item) && item.seasons && item.seasons.length > 0 && (
                 <View className="mt-6">
@@ -414,18 +547,40 @@ export function DetailModal({
             </View>
           </ScrollView>
 
-          <SafeAreaView className="absolute bottom-0 left-0 right-0">
-            <View className="px-5 pb-5 pt-3 bg-white border-t border-gray-100">
+          <SafeAreaView className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100">
+            <View className="px-5 pb-5 pt-3">
               <TouchableOpacity
                 className="bg-blue-500 rounded-xl py-4 items-center active:bg-blue-600"
-                onPress={onAddToWatchlist}
+                onPress={handleOpenRating}
               >
                 <Text className="text-white font-semibold text-base">
-                  Agregar a pendientes
+                  {userHasRated ? "Editar mi calificación" : "Calificar"}
                 </Text>
               </TouchableOpacity>
+
+              {!userHasRated && (
+                <TouchableOpacity
+                  className="py-3 items-center"
+                  onPress={watchlistItem ? handleRemoveFromWatchlist : handleAddToWatchlist}
+                >
+                  <Text className={`font-medium ${watchlistItem ? "text-red-500" : "text-blue-500"}`}>
+                    {watchlistItem ? "Quitar de pendientes" : "Agregar a pendientes"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </SafeAreaView>
+
+          <RatingModal
+            visible={ratingModalVisible}
+            onClose={handleCloseRating}
+            onSave={handleSaveRating}
+            title={getTitle(item)}
+            posterPath={item.poster_path}
+            existingScore={myScore}
+            existingComment={myComment}
+            saving={savingRating}
+          />
         </View>
       ) : null}
     </Modal>
