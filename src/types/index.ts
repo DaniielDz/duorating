@@ -22,6 +22,7 @@ export interface Rating {
   user_1_comment: string | null;
   user_2_comment: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface WatchlistItem {
