@@ -5,6 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../context/auth";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { ToastProvider } from "../components/ui/Toast";
 
 function RootLayoutNav() {
   const { session, couple, loading } = useAuth();
@@ -54,10 +56,14 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <StatusBar style="auto" />
-        <RootLayoutNav />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ToastProvider>
+            <StatusBar style="auto" />
+            <RootLayoutNav />
+          </ToastProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }
