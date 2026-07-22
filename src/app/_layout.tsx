@@ -1,15 +1,12 @@
 import "../../global.css";
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../context/auth";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ToastProvider } from "../components/ui/Toast";
-
-SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { session, couple, loading } = useAuth();
@@ -18,8 +15,6 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (loading) return;
-
-    SplashScreen.hideAsync();
 
     const inAuthGroup = segments[0] === "(auth)";
     const segmentPath = segments.join("/");

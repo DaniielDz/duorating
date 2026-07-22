@@ -7,12 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "duorating",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -37,14 +31,7 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router",
-      "expo-splash-screen"
-    ],
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "6879508e-e8c8-4e9e-a59d-5628595cdbbe"
-      }
-    }
+      "expo-router"
+    ]
   }
 }
