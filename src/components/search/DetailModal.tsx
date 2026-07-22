@@ -9,6 +9,8 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { tmdb, TMDBMovieDetails, TMDBTVDetails, TMDBTVSeasonDetails, TMDBWatchProviderItem } from "../../lib/tmdb";
 import { Rating, WatchlistItem } from "../../types";
 import * as db from "../../lib/db";
@@ -220,7 +222,7 @@ export function DetailModal({
                 />
               ) : (
                 <View className="w-full h-56 bg-gray-800 items-center justify-center">
-                  <Text className="text-5xl">🎬</Text>
+                  <MaterialCommunityIcons name="filmstrip" size={48} color="#6B7280" />
                 </View>
               )}
               <View className="absolute inset-0 bg-black/30" />
@@ -230,7 +232,7 @@ export function DetailModal({
               className="absolute top-12 right-4 z-10 bg-black/50 rounded-full w-8 h-8 items-center justify-center"
               onPress={onClose}
             >
-              <Text className="text-white text-lg font-bold">✕</Text>
+              <Ionicons name="close" size={20} color="#fff" />
             </TouchableOpacity>
 
             <View className="px-5 -mt-12">
@@ -243,7 +245,7 @@ export function DetailModal({
                   />
                 ) : (
                   <View className="w-32 h-44 rounded-xl border-4 border-white bg-gray-200 items-center justify-center">
-                    <Text className="text-3xl">🎬</Text>
+                    <MaterialCommunityIcons name="filmstrip" size={36} color="#9CA3AF" />
                   </View>
                 )}
                 <View className="flex-1 ml-4 justify-end pb-1.5">
@@ -261,7 +263,7 @@ export function DetailModal({
                       <>
                         <Text className="text-md text-gray-400 mx-1.5">•</Text>
                         <Text className="text-md font-medium text-yellow-600">
-                          ★ {item.vote_average.toFixed(1)}
+                          <Ionicons name="star" size={14} color="#EAB308" /> {item.vote_average.toFixed(1)}
                         </Text>
                       </>
                     ) : null}
@@ -356,7 +358,7 @@ export function DetailModal({
                       <View className="items-center mb-4 pb-4 border-b border-gray-200">
                         <Text className="text-sm text-gray-500">Promedio de la pareja</Text>
                         <Text className="text-3xl font-bold text-yellow-600">
-                          ★ {((myScore + partnerScore) / 2).toFixed(1)}
+                          <Ionicons name="star" size={28} color="#EAB308" /> {((myScore + partnerScore) / 2).toFixed(1)}
                         </Text>
                       </View>
                     )}
@@ -408,7 +410,7 @@ export function DetailModal({
                               />
                             ) : (
                               <View className="w-10 h-14 rounded-lg bg-gray-200 items-center justify-center">
-                                <Text className="text-lg">📺</Text>
+                                <Ionicons name="tv-outline" size={22} color="#9CA3AF" />
                               </View>
                             )}
                             <View className="flex-1 ml-3">
@@ -504,7 +506,7 @@ export function DetailModal({
                             />
                           ) : (
                             <View className="w-16 h-16 rounded-full bg-gray-200 items-center justify-center">
-                              <Text className="text-xl">🎬</Text>
+                              <MaterialCommunityIcons name="filmstrip" size={24} color="#9CA3AF" />
                             </View>
                           )}
                           <Text className="text-xs text-center text-gray-700 mt-1.5 leading-4" numberOfLines={2}>
@@ -531,7 +533,7 @@ export function DetailModal({
                           />
                         ) : (
                           <View className="w-16 h-16 rounded-full bg-gray-200 items-center justify-center">
-                            <Text className="text-xl">🎭</Text>
+                            <MaterialCommunityIcons name="account-circle-outline" size={24} color="#9CA3AF" />
                           </View>
                         )}
                         <Text className="text-xs text-center text-gray-700 mt-1.5 leading-4" numberOfLines={2}>

@@ -10,6 +10,8 @@ import {
   RefreshControl,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../../context/auth";
 import { useWatchlist } from "../../hooks/useWatchlist";
 import { RatingModal } from "../../components/ratings/RatingModal";
@@ -151,7 +153,7 @@ export default function WatchlistScreen() {
   if (items.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-6">
-        <Text className="text-6xl mb-4">📋</Text>
+        <Ionicons name="clipboard-outline" size={64} color="#9CA3AF" style={{ marginBottom: 16 }} />
         <Text className="text-2xl font-bold text-gray-900 mb-2">
           Sin pendientes
         </Text>
@@ -239,7 +241,7 @@ export default function WatchlistScreen() {
                   />
                 ) : (
                   <View className="w-20 h-28 bg-gray-200 items-center justify-center">
-                    <Text className="text-2xl">🎬</Text>
+                    <MaterialCommunityIcons name="filmstrip" size={28} color="#9CA3AF" />
                   </View>
                 )}
                   <View className="flex-1 px-3 py-3">
@@ -283,10 +285,10 @@ export default function WatchlistScreen() {
                           }`}
                         >
                           {badgeType === "both"
-                            ? "👍 Ambos han calificado"
+                            ? <><Ionicons name="thumbs-up" size={14} color="#1D4ED8" /> Ambos han calificado</>
                             : badgeType === "pending_partner"
-                              ? "⏳ Esperando calificación de tu pareja"
-                              : "✅ Tu pareja ya calificó, falta la tuya"}
+                              ? <><Ionicons name="hourglass" size={14} color="#B45309" /> Esperando calificación de tu pareja</>
+                              : <><Ionicons name="checkmark-circle" size={14} color="#15803D" /> Tu pareja ya calificó, falta la tuya</>}
                         </Text>
                       </View>
                     )}
@@ -295,10 +297,11 @@ export default function WatchlistScreen() {
                 <View className="flex-row items-end gap-2 pr-3 pb-3">
                   {!iRated && (
                     <TouchableOpacity
-                      className="bg-green-500 rounded-lg py-2.5 px-3 items-center active:bg-green-600"
+                      className="bg-green-500 rounded-lg py-2.5 px-3 items-center flex-row active:bg-green-600"
                       onPress={() => handleMarkAsWatched(item)}
                     >
-                      <Text className="text-white text-sm font-semibold">👀 Visto</Text>
+                      <Ionicons name="eye-outline" size={16} color="#fff" />
+                      <Text className="text-white text-sm font-semibold ml-1">Visto</Text>
                     </TouchableOpacity>
                   )}
                   {!iRated && !partnerRated && (
@@ -306,7 +309,7 @@ export default function WatchlistScreen() {
                       className="bg-red-100 rounded-lg py-2.5 px-3 items-center active:bg-red-200"
                       onPress={() => handleConfirmRemove(item)}
                     >
-                      <Text className="text-red-500 text-sm font-semibold">🗑️</Text>
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
                     </TouchableOpacity>
                   )}
                 </View>

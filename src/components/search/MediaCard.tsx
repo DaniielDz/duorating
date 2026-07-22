@@ -1,4 +1,5 @@
 import { TouchableOpacity, Text, View, Image } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { tmdb, TMDBResult } from "../../lib/tmdb";
 
 interface MediaCardProps {
@@ -35,7 +36,7 @@ export function MediaCard({ item, onPress }: MediaCardProps) {
         />
       ) : (
         <View className="w-full aspect-[2/3] items-center justify-center bg-gray-200">
-          <Text className="text-gray-400 text-3xl">🎬</Text>
+          <MaterialCommunityIcons name="filmstrip" size={40} color="#9CA3AF" />
         </View>
       )}
       <View className="px-2 py-2">

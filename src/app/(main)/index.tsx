@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../../context/auth";
 import { Rating, WatchlistItem } from "../../types";
 import * as db from "../../lib/db";
@@ -88,10 +90,10 @@ export default function HomeScreen() {
   }, [couple, fetchData]);
 
   const getCompatibilityLabel = (pct: number) => {
-    if (pct >= 90) return "¡Almas gemelas del cine! 💖🍿";
-    if (pct >= 80) return "¡Excelente sintonía! 🎬✨";
-    if (pct >= 70) return "¡Gustos parecidos! 👍🍿";
-    return "¡Debates divertidos asegurados! 🗯️📽️";
+    if (pct >= 90) return <>¡Almas gemelas del cine! <Ionicons name="heart" size={14} color="#EAB308" /> <MaterialCommunityIcons name="popcorn" size={14} color="#EAB308" /></>;
+    if (pct >= 80) return <>¡Excelente sintonía! <MaterialCommunityIcons name="filmstrip" size={14} color="#EAB308" /> <Ionicons name="sparkles" size={14} color="#EAB308" /></>;
+    if (pct >= 70) return <>¡Gustos parecidos! <Ionicons name="thumbs-up" size={14} color="#EAB308" /> <MaterialCommunityIcons name="popcorn" size={14} color="#EAB308" /></>;
+    return <>¡Debates divertidos asegurados! <Ionicons name="chatbubble-ellipses" size={14} color="#EAB308" /> <MaterialCommunityIcons name="filmstrip-box" size={14} color="#EAB308" /></>;
   };
 
   if (loading) {
@@ -101,7 +103,7 @@ export default function HomeScreen() {
   if (error && !stats) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
-        <Text className="text-5xl mb-4">⚠️</Text>
+        <Ionicons name="alert-circle" size={48} color="#EF4444" style={{ marginBottom: 16 }} />
         <Text className="text-xl font-bold text-gray-900 mb-2">Error al cargar</Text>
         <Text className="text-gray-500 text-center mb-8 leading-6">{error}</Text>
         <TouchableOpacity
@@ -123,7 +125,7 @@ export default function HomeScreen() {
     >
       <View className="px-5 pt-8 pb-6">
         <Text className="text-3xl font-bold text-gray-900">
-          ¡Hola{user?.email ? `, ${user.email.split("@")[0]}` : ""}! 👋
+          ¡Hola{user?.email ? `, ${user.email.split("@")[0]}` : ""}! <Ionicons name="hand-left-outline" size={28} color="#374151" />
         </Text>
         <Text className="text-gray-500 mt-1">
           Esto es lo que han visto juntos
@@ -146,7 +148,7 @@ export default function HomeScreen() {
       {stats?.compatibilityPercent != null && (
         <View className="mx-5 mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-5 border border-yellow-200">
           <Text className="text-sm text-yellow-700 font-semibold mb-1">
-            Compatibilidad 🎯
+            Compatibilidad <Ionicons name="locate-outline" size={16} color="#A16207" />
           </Text>
           <View className="flex-row items-baseline gap-1.5">
             <Text className="text-5xl font-bold text-yellow-600">
@@ -165,7 +167,7 @@ export default function HomeScreen() {
       {stats?.compatibilityPercent == null && stats && (
         <View className="mx-5 mb-6 bg-gray-50 rounded-2xl p-5 border border-gray-200">
           <Text className="text-sm text-gray-500 font-semibold mb-1">
-            Compatibilidad 🎯
+            Compatibilidad <Ionicons name="locate-outline" size={16} color="#6B7280" />
           </Text>
           <Text className="text-gray-400 text-base leading-6">
             Califica contenido con tu pareja para ver su compatibilidad cinéfila.
@@ -176,7 +178,7 @@ export default function HomeScreen() {
       {recentWatchlist.length > 0 && (
         <View className="px-5 mb-6">
           <Text className="text-lg font-bold text-gray-900 mb-3">
-            Próximos por ver 📋
+            Próximos por ver <Ionicons name="clipboard-outline" size={18} color="#111827" />
           </Text>
           {recentWatchlist.map((item) => (
             <TouchableOpacity
@@ -192,7 +194,7 @@ export default function HomeScreen() {
                 />
               ) : (
                 <View className="w-14 h-20 bg-gray-200 items-center justify-center">
-                  <Text className="text-xl">🎬</Text>
+                  <MaterialCommunityIcons name="filmstrip" size={24} color="#9CA3AF" />
                 </View>
               )}
               <View className="flex-1 px-3">
@@ -211,7 +213,7 @@ export default function HomeScreen() {
       {recentRatings.length > 0 && (
         <View className="px-5">
           <Text className="text-lg font-bold text-gray-900 mb-3">
-            Últimas calificaciones ⭐
+            Últimas calificaciones <Ionicons name="star" size={18} color="#111827" />
           </Text>
           {recentRatings.map((item) => {
             const avgScore =
@@ -233,7 +235,7 @@ export default function HomeScreen() {
                 />
               ) : (
                 <View className="w-14 h-20 bg-gray-200 items-center justify-center">
-                  <Text className="text-xl">🎬</Text>
+                  <MaterialCommunityIcons name="filmstrip" size={24} color="#9CA3AF" />
                 </View>
               )}
                 <View className="flex-1 px-3">
@@ -241,9 +243,9 @@ export default function HomeScreen() {
                     {item.title}
                   </Text>
                   {avgScore ? (
-                    <Text className="text-yellow-600 font-bold text-sm mt-0.5">
-                      ★ {avgScore}
-                    </Text>
+                      <Text className="text-yellow-600 font-bold text-sm mt-0.5">
+                        <Ionicons name="star" size={14} color="#EAB308" /> {avgScore}
+                      </Text>
                   ) : (
                     <Text className="text-xs text-gray-400 mt-0.5">Calificación pendiente</Text>
                   )}
