@@ -21,7 +21,7 @@ function RootLayoutNav() {
     const isAtLink = segmentPath === "couple/link";
 
     if (!session && !inAuthGroup) {
-      router.replace("/(auth)/login");
+      router.replace("/(auth)/welcome");
     } else if (session && !couple && !isAtLink) {
       router.replace("/couple/link");
     } else if (session && couple && (inAuthGroup || isAtLink)) {
@@ -31,14 +31,14 @@ function RootLayoutNav() {
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className="flex-1 justify-center items-center bg-dark">
+        <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
 
   return (
-    <Stack>
+    <Stack screenOptions={{ contentStyle: { backgroundColor: "#0D0D1A" } }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(main)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -59,7 +59,7 @@ export default function RootLayout() {
       <ErrorBoundary>
         <AuthProvider>
           <ToastProvider>
-            <StatusBar style="auto" />
+            <StatusBar style="light" />
             <RootLayoutNav />
           </ToastProvider>
         </AuthProvider>

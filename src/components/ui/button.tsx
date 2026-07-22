@@ -1,11 +1,12 @@
-import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
+import { TouchableOpacity, Text, ActivityIndicator } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface ButtonProps {
   title: string;
-  onPress: () => void;
+  onPress?: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "ghost";
 }
 
 export function Button({
@@ -15,27 +16,43 @@ export function Button({
   disabled = false,
   variant = "primary",
 }: ButtonProps) {
-  const baseClasses = "w-full rounded-lg p-4 flex-row items-center justify-center";
-  const variantClasses =
-    variant === "primary"
-      ? "bg-blue-500 active:bg-blue-600"
-      : "bg-gray-200 active:bg-gray-300";
-  const disabledClasses = disabled || loading ? "opacity-50" : "";
+  const handlePress = onPress || (() => {});
+  const isDisabled = disabled || loading;
+
+  if (variant === "ghost") {
+    return (
+      <TouchableOpacity
+        className={`w-full rounded-xl py-4 flex-row items-center justify-center border border-line ${
+          isDisabled ? "opacity-50" : ""
+        }`}
+        onPress={handlePress}
+        disabled={isDisabled}
+        activeOpacity={0.7}
+      >
+        {loading && <ActivityIndicator color="#9CA3AF" className="mr-2" />}
+        <Text className="font-semibold text-base text-muted-foreground">
+          {title}
+        </Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
-      className={`${baseClasses} ${variantClasses} ${disabledClasses}`}
-      onPress={onPress}
-      disabled={disabled || loading}
+      onPress={handlePress}
+      disabled={isDisabled}
+      activeOpacity={0.8}
+      className={`w-full rounded-xl ${isDisabled ? "opacity-50" : ""}`}
     >
-      {loading && <ActivityIndicator color="#fff" className="mr-2" />}
-      <Text
-        className={`font-semibold text-base ${
-          variant === "primary" ? "text-white" : "text-gray-700"
-        }`}
+      <LinearGradient
+        colors={["#4F46E5", "#6366F1"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="w-full rounded-xl py-4 flex-row items-center justify-center"
       >
-        {title}
-      </Text>
+        {loading && <ActivityIndicator color="#FFFFFF" className="mr-2" />}
+        <Text className="font-bold text-base text-white">{title}</Text>
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
