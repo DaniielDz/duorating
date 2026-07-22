@@ -552,23 +552,39 @@ export function DetailModal({
 
           <SafeAreaView className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100">
             <View className="px-5 pb-5 pt-3">
-              <TouchableOpacity
-                className="bg-blue-500 rounded-xl py-4 items-center active:bg-blue-600"
-                onPress={handleOpenRating}
-              >
-                <Text className="text-white font-semibold text-base">
-                  {userHasRated ? "Editar mi calificación" : "Calificar"}
-                </Text>
-              </TouchableOpacity>
+              {watchlistItem != null && !userHasRated && (
+                <TouchableOpacity
+                  className="bg-green-500 rounded-xl py-4 items-center active:bg-green-600"
+                  onPress={handleOpenRating}
+                >
+                  <Text className="text-white font-semibold text-base">Marcar como visto</Text>
+                </TouchableOpacity>
+              )}
 
-              {!userHasRated && (
+              {userHasRated && (
+                <TouchableOpacity
+                  className="bg-blue-500 rounded-xl py-4 items-center active:bg-blue-600"
+                  onPress={handleOpenRating}
+                >
+                  <Text className="text-white font-semibold text-base">Editar mi calificación</Text>
+                </TouchableOpacity>
+              )}
+
+              {watchlistItem == null && !userHasRated && (
+                <TouchableOpacity
+                  className="bg-blue-500 rounded-xl py-4 items-center active:bg-blue-600"
+                  onPress={handleAddToWatchlist}
+                >
+                  <Text className="text-white font-semibold text-base">Agregar a pendientes</Text>
+                </TouchableOpacity>
+              )}
+
+              {watchlistItem != null && !userHasRated && (
                 <TouchableOpacity
                   className="py-3 items-center"
-                  onPress={watchlistItem ? handleRemoveFromWatchlist : handleAddToWatchlist}
+                  onPress={handleRemoveFromWatchlist}
                 >
-                  <Text className={`font-medium ${watchlistItem ? "text-red-500" : "text-blue-500"}`}>
-                    {watchlistItem ? "Quitar de pendientes" : "Agregar a pendientes"}
-                  </Text>
+                  <Text className="font-medium text-red-500">Quitar de pendientes</Text>
                 </TouchableOpacity>
               )}
             </View>
