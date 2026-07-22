@@ -183,17 +183,17 @@ export default function HomeScreen() {
           {recentWatchlist.map((item) => (
             <TouchableOpacity
               key={item.id}
-              className="flex-row items-center bg-gray-50 rounded-xl mb-2 overflow-hidden border border-gray-200 active:opacity-80"
+              className="flex-row items-center bg-gray-50 rounded-xl mb-2 border border-gray-200 active:opacity-80"
               onPress={() => handleOpenDetail(item.tmdb_id, item.media_type)}
             >
               {item.poster_path ? (
                 <Image
                   source={{ uri: tmdb.getPosterUrl(item.poster_path, "w200") }}
-                  className="w-14 h-20"
+                  className="w-14 h-20 flex-shrink-0"
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-14 h-20 bg-gray-200 items-center justify-center">
+                <View className="w-14 h-20 bg-gray-200 items-center justify-center flex-shrink-0">
                   <MaterialCommunityIcons name="filmstrip" size={24} color="#9CA3AF" />
                 </View>
               )}
@@ -224,17 +224,17 @@ export default function HomeScreen() {
             return (
               <TouchableOpacity
                 key={item.id}
-                className="flex-row items-center bg-gray-50 rounded-xl mb-2 overflow-hidden border border-gray-200 active:opacity-80"
+                className="flex-row items-center bg-gray-50 rounded-xl mb-2 border border-gray-200 active:opacity-80"
                 onPress={() => handleOpenDetail(item.tmdb_id, item.media_type)}
               >
               {item.poster_path ? (
                 <Image
                   source={{ uri: tmdb.getPosterUrl(item.poster_path, "w200") }}
-                  className="w-14 h-20"
+                  className="w-14 h-20 flex-shrink-0"
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-14 h-20 bg-gray-200 items-center justify-center">
+                <View className="w-14 h-20 bg-gray-200 items-center justify-center flex-shrink-0">
                   <MaterialCommunityIcons name="filmstrip" size={24} color="#9CA3AF" />
                 </View>
               )}

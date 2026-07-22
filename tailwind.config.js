@@ -21,6 +21,9 @@ module.exports = {
         muted: "#6B7280",
         "muted-foreground": "#9CA3AF",
       },
+      fontFamily: {
+        sans: ["Inter", "sans-serif"],
+      },
     },
   },
   plugins: [],

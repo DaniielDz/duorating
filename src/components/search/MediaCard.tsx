@@ -25,7 +25,7 @@ export function MediaCard({ item, onPress }: MediaCardProps) {
 
   return (
     <TouchableOpacity
-      className="flex-1 rounded-xl overflow-hidden bg-gray-100 active:opacity-80"
+      className="flex-1 rounded-xl bg-gray-100 active:opacity-80"
       onPress={onPress}
     >
       {posterUrl ? (
