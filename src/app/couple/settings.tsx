@@ -86,7 +86,7 @@ export default function CoupleSettingsScreen() {
           title="Desvincular pareja"
           onPress={handleUnlink}
           loading={loading}
-          variant="secondary"
+          variant="ghost"
         />
 
         <TouchableOpacity className="mt-6 py-3" onPress={signOut}>
