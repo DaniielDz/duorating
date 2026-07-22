@@ -227,7 +227,7 @@ export default function WatchlistScreen() {
             else if (partnerRated) badgeType = "pending_me";
 
             return (
-              <View className="flex-row bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-200">
+              <View className="flex-row bg-gray-50 rounded-xl mb-3 border border-gray-200">
                 <TouchableOpacity
                   className="flex-row flex-1"
                   activeOpacity={0.7}
@@ -236,11 +236,11 @@ export default function WatchlistScreen() {
                 {item.poster_path ? (
                   <Image
                     source={{ uri: tmdb.getPosterUrl(item.poster_path, "w200") }}
-                    className="w-20 h-28"
+                    className="w-20 h-28 flex-shrink-0"
                     resizeMode="cover"
                   />
                 ) : (
-                  <View className="w-20 h-28 bg-gray-200 items-center justify-center">
+                  <View className="w-20 h-28 bg-gray-200 items-center justify-center flex-shrink-0">
                     <MaterialCommunityIcons name="filmstrip" size={28} color="#9CA3AF" />
                   </View>
                 )}

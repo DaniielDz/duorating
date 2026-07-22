@@ -240,11 +240,11 @@ export function DetailModal({
                 {item.poster_path ? (
                   <Image
                     source={{ uri: tmdb.getPosterUrl(item.poster_path, "w500") }}
-                    className="w-32 h-44 rounded-xl border-4 border-white"
+                    className="w-32 h-44 rounded-xl border-4 border-white flex-shrink-0"
                     resizeMode="cover"
                   />
                 ) : (
-                  <View className="w-32 h-44 rounded-xl border-4 border-white bg-gray-200 items-center justify-center">
+                  <View className="w-32 h-44 rounded-xl border-4 border-white bg-gray-200 items-center justify-center flex-shrink-0">
                     <MaterialCommunityIcons name="filmstrip" size={36} color="#9CA3AF" />
                   </View>
                 )}
@@ -497,7 +497,7 @@ export function DetailModal({
                     <Text className="text-lg font-bold text-gray-900 mb-3">{label}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {people.map((p) => (
-                        <View key={p.id} className="mr-4 items-center" style={{ width: 72 }}>
+                        <View key={p.id} className="mr-4 items-center" style={{ width: 80 }}>
                           {p.profile_path ? (
                             <Image
                               source={{ uri: tmdb.getPosterUrl(p.profile_path, "w200") }}
@@ -524,7 +524,7 @@ export function DetailModal({
                   <Text className="text-lg font-bold text-gray-900 mb-3">Reparto</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {item.credits.cast.slice(0, 10).map((person) => (
-                      <View key={person.id} className="mr-4 items-center" style={{ width: 72 }}>
+                      <View key={person.id} className="mr-4 items-center" style={{ width: 80 }}>
                         {person.profile_path ? (
                           <Image
                             source={{ uri: tmdb.getPosterUrl(person.profile_path, "w200") }}

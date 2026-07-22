@@ -128,7 +128,7 @@ export default function LinkScreen() {
           Pásale este código a tu pareja para vincularse
         </Text>
         <View className="bg-gray-100 rounded-xl px-8 py-6 mb-6">
-          <Text className="text-4xl font-mono font-bold tracking-widest text-center">
+          <Text className="text-4xl font-mono font-bold tracking-wide text-center">
             {inviteCode}
           </Text>
         </View>

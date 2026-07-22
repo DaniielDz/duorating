@@ -227,10 +227,10 @@ export default function HistoryScreen() {
 
             return (
               <TouchableOpacity
-                className="flex-row bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-200 active:opacity-80"
+                className="flex-row bg-gray-50 rounded-xl mb-3 border border-gray-200 active:opacity-80"
                 onPress={() => handleOpenDetail(item.tmdb_id, item.media_type)}
               >
-                <View className="w-20">
+                <View className="w-20 flex-shrink-0">
                   {item.poster_path ? (
                     <Image
                       source={{ uri: tmdb.getPosterUrl(item.poster_path, "w200") }}
