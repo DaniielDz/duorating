@@ -11,6 +11,8 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../../context/auth";
 import { Rating } from "../../types";
 import * as db from "../../lib/db";
@@ -185,7 +187,7 @@ export default function HistoryScreen() {
         <ListSkeleton count={4} />
       ) : error && ratings.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-5xl mb-4">⚠️</Text>
+          <Ionicons name="alert-circle" size={48} color="#EF4444" style={{ marginBottom: 16 }} />
           <Text className="text-xl font-bold text-gray-900 mb-2">Error al cargar</Text>
           <Text className="text-gray-500 text-center mb-8 leading-6">{error}</Text>
           <TouchableOpacity
@@ -197,7 +199,7 @@ export default function HistoryScreen() {
         </View>
       ) : ratings.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-6xl mb-4">📊</Text>
+          <Ionicons name="bar-chart" size={64} color="#9CA3AF" style={{ marginBottom: 16 }} />
           <Text className="text-2xl font-bold text-gray-900 mb-2">
             Sin historial
           </Text>
@@ -237,7 +239,7 @@ export default function HistoryScreen() {
                     />
                   ) : (
                     <View className="flex-1 items-center justify-center bg-gray-200">
-                      <Text className="text-2xl">🎬</Text>
+                      <MaterialCommunityIcons name="filmstrip" size={28} color="#9CA3AF" />
                     </View>
                   )}
                 </View>
@@ -254,7 +256,7 @@ export default function HistoryScreen() {
                       </View>
                       {avgScore && (
                         <Text className="text-yellow-600 font-bold text-sm">
-                          ★ {avgScore}
+                          <Ionicons name="star" size={14} color="#EAB308" /> {avgScore}
                         </Text>
                       )}
                     </View>
@@ -305,12 +307,12 @@ export default function HistoryScreen() {
                     <TouchableOpacity
                       onPress={() => handleOpenDetail(item.tmdb_id, item.media_type)}
                     >
-                      <Text className="text-lg">✏️</Text>
+                      <Ionicons name="pencil-outline" size={22} color="#6B7280" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDeleteRating(item)}
                     >
-                      <Text className="text-lg">🗑️</Text>
+                      <Ionicons name="trash-outline" size={22} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 </View>

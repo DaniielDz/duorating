@@ -1,5 +1,6 @@
 import { Tabs, Link } from "expo-router";
-import { Text, TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function MainLayout() {
   return (
@@ -9,12 +10,12 @@ export default function MainLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 24 }}>🏠</Text>
+            <Ionicons name="home" size={24} color={color} />
           ),
           headerRight: () => (
             <Link href="/couple/settings" asChild>
               <TouchableOpacity style={{ marginRight: 16 }}>
-                <Text style={{ fontSize: 20 }}>⚙️</Text>
+                <Ionicons name="settings-outline" size={24} color="#374151" />
               </TouchableOpacity>
             </Link>
           ),
@@ -25,7 +26,7 @@ export default function MainLayout() {
         options={{
           title: "Buscar",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 24 }}>🔍</Text>
+            <Ionicons name="search" size={24} color={color} />
           ),
         }}
       />
@@ -34,7 +35,7 @@ export default function MainLayout() {
         options={{
           title: "Pendientes",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 24 }}>📋</Text>
+            <Ionicons name="clipboard-outline" size={24} color={color} />
           ),
         }}
       />
@@ -43,7 +44,7 @@ export default function MainLayout() {
         options={{
           title: "Historial",
           tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 24 }}>📊</Text>
+            <Ionicons name="bar-chart" size={24} color={color} />
           ),
         }}
       />

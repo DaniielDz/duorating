@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { tmdb } from "../../lib/tmdb";
 
 interface RatingModalProps {
@@ -73,7 +74,7 @@ export function RatingModal({
                 />
               ) : (
                 <View className="w-16 h-24 rounded-lg bg-gray-200 items-center justify-center">
-                  <Text className="text-2xl">🎬</Text>
+                  <MaterialCommunityIcons name="filmstrip" size={28} color="#9CA3AF" />
                 </View>
               )}
               <Text className="text-xl font-bold text-gray-900 ml-4 flex-1" numberOfLines={2}>

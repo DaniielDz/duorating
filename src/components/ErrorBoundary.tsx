@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
   children: ReactNode;
@@ -32,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <View className="flex-1 items-center justify-center bg-white px-8">
-          <Text className="text-6xl mb-6">⚠️</Text>
+          <Ionicons name="alert-circle" size={64} color="#EF4444" style={{ marginBottom: 24 }} />
           <Text className="text-2xl font-bold text-gray-900 mb-2">
             Algo salió mal
           </Text>
