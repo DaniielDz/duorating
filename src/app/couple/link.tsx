@@ -11,6 +11,7 @@ import { useAuth } from "../../context/auth";
 import { supabase } from "../../lib/supabase";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { useToast } from "../../components/ui/Toast";
 
 function generateCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -23,6 +24,7 @@ function generateCode(): string {
 
 export default function LinkScreen() {
   const { user, refreshCouple, signOut } = useAuth();
+  const { showToast } = useToast();
   const [mode, setMode] = useState<"choose" | "waiting" | "enter">("choose");
   const [inviteCode, setInviteCode] = useState("");
   const [inputCode, setInputCode] = useState("");
@@ -32,8 +34,9 @@ export default function LinkScreen() {
   useEffect(() => {
     if (mode !== "waiting" || !inviteCode) return;
 
+    const uniqueId = `couple-wait-${inviteCode}-${Date.now()}`;
     const channel = supabase
-      .channel("couple-wait")
+      .channel(uniqueId)
       .on(
         "postgres_changes",
         {
@@ -57,21 +60,24 @@ export default function LinkScreen() {
     setError("");
     setLoading(true);
 
-    const code = generateCode();
-    const { error: dbError } = await supabase.from("couples").insert({
-      user_1_id: user!.id,
-      invite_code: code,
-    });
+    try {
+      const code = generateCode();
+      const { error: dbError } = await supabase.from("couples").insert({
+        user_1_id: user!.id,
+        invite_code: code,
+      });
 
-    setLoading(false);
+      if (dbError) throw dbError;
 
-    if (dbError) {
-      setError(dbError.message);
-      return;
+      setInviteCode(code);
+      setMode("waiting");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al generar código";
+      setError(msg);
+      showToast("error", msg);
+    } finally {
+      setLoading(false);
     }
-
-    setInviteCode(code);
-    setMode("waiting");
   };
 
   const handleEnterCode = async () => {
@@ -85,36 +91,33 @@ export default function LinkScreen() {
 
     setLoading(true);
 
-    const { data, error: fetchError } = await supabase
-      .from("couples")
-      .select("*")
-      .eq("invite_code", code)
-      .is("user_2_id", null)
-      .maybeSingle();
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("couples")
+        .select("*")
+        .eq("invite_code", code)
+        .is("user_2_id", null)
+        .maybeSingle();
 
-    if (fetchError || !data) {
+      if (fetchError || !data) {
+        throw new Error("Código no válido o ya fue usado");
+      }
+
+      const { error: updateError } = await supabase
+        .from("couples")
+        .update({ user_2_id: user!.id })
+        .eq("id", data.id);
+
+      if (updateError) throw updateError;
+
+      await refreshCouple();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al vincular";
+      setError(msg);
+      showToast("error", msg);
+    } finally {
       setLoading(false);
-      setError("Código no válido o ya fue usado");
-      return;
     }
-
-    console.log("Updating couple row with ID:", data.id, "setting user_2_id:", user!.id);
-    const { error: updateError } = await supabase
-      .from("couples")
-      .update({ user_2_id: user!.id })
-      .eq("id", data.id);
-
-    setLoading(false);
-
-    if (updateError) {
-      console.error("Update error:", updateError);
-      setError(updateError.message);
-      return;
-    }
-
-    console.log("Update successful, calling refreshCouple...");
-    await refreshCouple();
-    console.log("refreshCouple finished");
   };
 
   if (mode === "waiting") {

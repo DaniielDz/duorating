@@ -18,6 +18,9 @@ import { tmdb } from "../../lib/tmdb";
 import { supabase } from "../../lib/supabase";
 import { useMediaDetails } from "../../hooks/useMediaDetails";
 import { DetailModal } from "../../components/search/DetailModal";
+import { useToast } from "../../components/ui/Toast";
+import { ListSkeleton } from "../../components/ui/Skeleton";
+import { subscribeToChanges } from "../../hooks/useSupabaseQuery";
 
 type MediaFilter = "all" | "movie" | "tv";
 type StatusFilter = "all" | "both" | "pending_me" | "pending_partner";
@@ -25,8 +28,10 @@ type SortOption = "newest" | "oldest" | "highest_avg";
 
 export default function HistoryScreen() {
   const { couple, user } = useAuth();
+  const { showToast } = useToast();
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -39,9 +44,11 @@ export default function HistoryScreen() {
 
   const isUser1 = user?.id === couple?.user_1_id;
 
-  const refreshRatings = useCallback(async () => {
+  const loadRatings = useCallback(async (isInitial = false) => {
     if (!couple || !user) return;
-    setRefreshing(true);
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
+    setError(null);
     try {
       const data = await db.getRatingsHistory(couple.id, user.id, couple.user_1_id!, couple.user_2_id!, {
         mediaType: mediaFilter,
@@ -49,65 +56,67 @@ export default function HistoryScreen() {
         sortBy,
       });
       setRatings(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      const msg = err instanceof db.DBError ? err.message : "Error al cargar historial";
+      setError(msg);
+      if (!isInitial) showToast("error", msg);
     } finally {
+      setLoading(false);
       setRefreshing(false);
     }
   }, [couple, user, mediaFilter, statusFilter, sortBy]);
 
-  const fetchRatings = useCallback(async () => {
-    if (!couple || !user) return;
-    setLoading(true);
-    try {
-      await refreshRatings();
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshRatings]);
-
   useEffect(() => {
-    fetchRatings();
-  }, [fetchRatings]);
+    loadRatings(true);
+  }, [loadRatings]);
 
   useEffect(() => {
     if (!couple) return;
-
-    const channel = supabase
-      .channel(`ratings-history-${couple.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ratings",
-          filter: `couple_id=eq.${couple.id}`,
-        },
-        () => {
-          refreshRatings();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [couple, refreshRatings]);
+    const unsub = subscribeToChanges("ratings", couple.id, () => loadRatings());
+    return unsub;
+  }, [couple, loadRatings]);
 
   useFocusEffect(
     useCallback(() => {
-      refreshRatings();
-    }, [refreshRatings]),
+      loadRatings();
+    }, [loadRatings]),
   );
 
   const handleCloseDetail = useCallback(() => {
     setSelectedDetail(null);
-    refreshRatings();
-  }, [refreshRatings]);
+    loadRatings();
+  }, [loadRatings]);
 
   const handleOpenDetail = useCallback((id: number, mediaType: "movie" | "tv") => {
     setSelectedDetail({ id, mediaType });
   }, []);
+
+  const handleDeleteRating = useCallback(
+    async (item: Rating) => {
+      Alert.alert(
+        "Eliminar calificación",
+        "¿Seguro que quieres eliminar esta calificación?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Eliminar",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await db.deleteRating(item.id);
+                loadRatings();
+                showToast("success", "Calificación eliminada");
+              } catch (err) {
+                const msg = err instanceof db.DBError ? err.message : "No se pudo eliminar";
+                showToast("error", msg);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [loadRatings, showToast],
+  );
 
   const mediaFilters: { label: string; value: MediaFilter }[] = [
     { label: "Todo", value: "all" },
@@ -173,8 +182,18 @@ export default function HistoryScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
+        <ListSkeleton count={4} />
+      ) : error && ratings.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-5xl mb-4">⚠️</Text>
+          <Text className="text-xl font-bold text-gray-900 mb-2">Error al cargar</Text>
+          <Text className="text-gray-500 text-center mb-8 leading-6">{error}</Text>
+          <TouchableOpacity
+            className="bg-blue-500 rounded-xl py-4 px-10 active:bg-blue-600"
+            onPress={() => loadRatings(true)}
+          >
+            <Text className="text-white font-semibold text-base">Reintentar</Text>
+          </TouchableOpacity>
         </View>
       ) : ratings.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
@@ -192,7 +211,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refreshRatings} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => loadRatings()} />
           }
           renderItem={({ item }) => {
             const myScore = isUser1 ? item.user_1_score : item.user_2_score;
@@ -289,27 +308,7 @@ export default function HistoryScreen() {
                       <Text className="text-lg">✏️</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => {
-                        Alert.alert(
-                          "Eliminar calificación",
-                          "¿Seguro que quieres eliminar esta calificación?",
-                          [
-                            { text: "Cancelar", style: "cancel" },
-                            {
-                              text: "Eliminar",
-                              style: "destructive",
-                              onPress: async () => {
-                                try {
-                                  await db.deleteRating(item.id);
-                                  refreshRatings();
-                                } catch {
-                                  Alert.alert("Error", "No se pudo eliminar");
-                                }
-                              },
-                            },
-                          ],
-                        );
-                      }}
+                      onPress={() => handleDeleteRating(item)}
                     >
                       <Text className="text-lg">🗑️</Text>
                     </TouchableOpacity>

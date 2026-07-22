@@ -1,14 +1,47 @@
 import { supabase } from "./supabase";
 import { Rating, WatchlistItem } from "../types";
 
+export class DBError extends Error {
+  constructor(message: string, public original?: unknown) {
+    super(message);
+    this.name = "DBError";
+  }
+}
+
+export function isNetworkError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    msg.includes("network") ||
+    msg.includes("fetch failed") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("unexpected end of json") ||
+    msg.includes("could not connect") ||
+    msg.includes("timeout") ||
+    msg.includes("abort")
+  );
+}
+
+function wrapError(err: unknown): never {
+  if (isNetworkError(err)) {
+    throw new DBError("Error de conexión. Verifica tu internet e intenta de nuevo.", err);
+  }
+  if (err instanceof DBError) throw err;
+  const message = err instanceof Error ? err.message : "Error inesperado en la base de datos";
+  throw new DBError(message, err);
+}
+
 export async function getWatchlist(coupleId: string): Promise<WatchlistItem[]> {
-  const { data, error } = await supabase
-    .from("watchlist")
-    .select("*")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  try {
+    const { data, error } = await supabase
+      .from("watchlist")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function addToWatchlist(
@@ -19,20 +52,28 @@ export async function addToWatchlist(
   posterPath: string | null,
   addedBy: string,
 ): Promise<void> {
-  const { error } = await supabase.from("watchlist").insert({
-    couple_id: coupleId,
-    tmdb_id: tmdbId,
-    media_type: mediaType,
-    title,
-    poster_path: posterPath,
-    added_by: addedBy,
-  });
-  if (error) throw error;
+  try {
+    const { error } = await supabase.from("watchlist").insert({
+      couple_id: coupleId,
+      tmdb_id: tmdbId,
+      media_type: mediaType,
+      title,
+      poster_path: posterPath,
+      added_by: addedBy,
+    });
+    if (error) throw error;
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function removeFromWatchlist(id: string): Promise<void> {
-  const { error } = await supabase.from("watchlist").delete().eq("id", id);
-  if (error) throw error;
+  try {
+    const { error } = await supabase.from("watchlist").delete().eq("id", id);
+    if (error) throw error;
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function getWatchlistItem(
@@ -40,15 +81,19 @@ export async function getWatchlistItem(
   tmdbId: number,
   mediaType: string,
 ): Promise<WatchlistItem | null> {
-  const { data, error } = await supabase
-    .from("watchlist")
-    .select("*")
-    .eq("couple_id", coupleId)
-    .eq("tmdb_id", tmdbId)
-    .eq("media_type", mediaType)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("watchlist")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .eq("tmdb_id", tmdbId)
+      .eq("media_type", mediaType)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function getRating(
@@ -56,15 +101,19 @@ export async function getRating(
   tmdbId: number,
   mediaType: string,
 ): Promise<Rating | null> {
-  const { data, error } = await supabase
-    .from("ratings")
-    .select("*")
-    .eq("couple_id", coupleId)
-    .eq("tmdb_id", tmdbId)
-    .eq("media_type", mediaType)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("ratings")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .eq("tmdb_id", tmdbId)
+      .eq("media_type", mediaType)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function saveRating(params: {
@@ -79,58 +128,66 @@ export async function saveRating(params: {
   score: number;
   comment: string | null;
 }): Promise<void> {
-  const { coupleId, tmdbId, mediaType, title, posterPath, userId, user1Id, user2Id, score, comment } = params;
+  try {
+    const { coupleId, tmdbId, mediaType, title, posterPath, userId, user1Id, user2Id, score, comment } = params;
 
-  const existing = await getRating(coupleId, tmdbId, mediaType);
-  const isUser1 = userId === user1Id;
-  const scoreField = isUser1 ? "user_1_score" : "user_2_score";
-  const commentField = isUser1 ? "user_1_comment" : "user_2_comment";
+    const existing = await getRating(coupleId, tmdbId, mediaType);
+    const isUser1 = userId === user1Id;
+    const scoreField = isUser1 ? "user_1_score" : "user_2_score";
+    const commentField = isUser1 ? "user_1_comment" : "user_2_comment";
 
-  if (existing) {
-    const { error } = await supabase
-      .from("ratings")
-      .update({
+    if (existing) {
+      const { error } = await supabase
+        .from("ratings")
+        .update({
+          [scoreField]: score,
+          [commentField]: comment,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+      if (error) throw error;
+
+      const otherScoreField = isUser1 ? "user_2_score" : "user_1_score";
+      if (existing[otherScoreField] != null) {
+        await supabase
+          .from("watchlist")
+          .delete()
+          .eq("couple_id", coupleId)
+          .eq("tmdb_id", tmdbId)
+          .eq("media_type", mediaType);
+      }
+    } else {
+      const insertData: Record<string, unknown> = {
+        couple_id: coupleId,
+        tmdb_id: tmdbId,
+        media_type: mediaType,
+        title,
+        poster_path: posterPath,
         [scoreField]: score,
         [commentField]: comment,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id);
-    if (error) throw error;
-
-    const otherScoreField = isUser1 ? "user_2_score" : "user_1_score";
-    if (existing[otherScoreField] != null) {
-      await supabase
-        .from("watchlist")
-        .delete()
-        .eq("couple_id", coupleId)
-        .eq("tmdb_id", tmdbId)
-        .eq("media_type", mediaType);
+      };
+      if (isUser1) {
+        insertData.user_2_score = null;
+        insertData.user_2_comment = null;
+      } else {
+        insertData.user_1_score = null;
+        insertData.user_1_comment = null;
+      }
+      const { error } = await supabase.from("ratings").insert(insertData);
+      if (error) throw error;
     }
-  } else {
-    const insertData: Record<string, unknown> = {
-      couple_id: coupleId,
-      tmdb_id: tmdbId,
-      media_type: mediaType,
-      title,
-      poster_path: posterPath,
-      [scoreField]: score,
-      [commentField]: comment,
-    };
-    if (isUser1) {
-      insertData.user_2_score = null;
-      insertData.user_2_comment = null;
-    } else {
-      insertData.user_1_score = null;
-      insertData.user_1_comment = null;
-    }
-    const { error } = await supabase.from("ratings").insert(insertData);
-    if (error) throw error;
+  } catch (err) {
+    wrapError(err);
   }
 }
 
 export async function deleteRating(id: string): Promise<void> {
-  const { error } = await supabase.from("ratings").delete().eq("id", id);
-  if (error) throw error;
+  try {
+    const { error } = await supabase.from("ratings").delete().eq("id", id);
+    if (error) throw error;
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function getRatingsHistory(
@@ -144,17 +201,18 @@ export async function getRatingsHistory(
     sortBy?: "newest" | "oldest" | "highest_avg";
   },
 ): Promise<Rating[]> {
-  let query = supabase
-    .from("ratings")
-    .select("*")
-    .eq("couple_id", coupleId);
+  try {
+    let query = supabase
+      .from("ratings")
+      .select("*")
+      .eq("couple_id", coupleId);
 
-  if (options?.mediaType && options.mediaType !== "all") {
-    query = query.eq("media_type", options.mediaType);
-  }
+    if (options?.mediaType && options.mediaType !== "all") {
+      query = query.eq("media_type", options.mediaType);
+    }
 
-  const { data, error } = await query.order("updated_at", { ascending: false, nullsFirst: false });
-  if (error) throw error;
+    const { data, error } = await query.order("updated_at", { ascending: false, nullsFirst: false });
+    if (error) throw error;
 
   let ratings = data ?? [];
 
@@ -185,20 +243,23 @@ export async function getRatingsHistory(
   }
 
   return ratings;
+  } catch (err) {
+    wrapError(err);
+  }
 }
-
 export async function getDashboardStats(coupleId: string) {
-  const { data: ratings, error: ratingsError } = await supabase
-    .from("ratings")
-    .select("*")
-    .eq("couple_id", coupleId);
-  if (ratingsError) throw ratingsError;
+  try {
+    const { data: ratings, error: ratingsError } = await supabase
+      .from("ratings")
+      .select("*")
+      .eq("couple_id", coupleId);
+    if (ratingsError) throw ratingsError;
 
-  const { data: watchlist, error: watchlistError } = await supabase
-    .from("watchlist")
-    .select("*")
-    .eq("couple_id", coupleId);
-  if (watchlistError) throw watchlistError;
+    const { data: watchlist, error: watchlistError } = await supabase
+      .from("watchlist")
+      .select("*")
+      .eq("couple_id", coupleId);
+    if (watchlistError) throw watchlistError;
 
   const totalRated = ratings?.length ?? 0;
   const totalWatchlist = watchlist?.length ?? 0;
@@ -221,32 +282,43 @@ export async function getDashboardStats(coupleId: string) {
     compatibilityPercent: compatibilityCount > 0 ? Math.max(0, compatibilityPercent) : null,
     bothRatedCount: compatibilityCount,
   };
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function getRecentRatings(
   coupleId: string,
   limit = 3,
 ): Promise<Rating[]> {
-  const { data, error } = await supabase
-    .from("ratings")
-    .select("*")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data ?? [];
+  try {
+    const { data, error } = await supabase
+      .from("ratings")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    wrapError(err);
+  }
 }
 
 export async function getRecentWatchlist(
   coupleId: string,
   limit = 3,
 ): Promise<WatchlistItem[]> {
-  const { data, error } = await supabase
-    .from("watchlist")
-    .select("*")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data ?? [];
+  try {
+    const { data, error } = await supabase
+      .from("watchlist")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  } catch (err) {
+    wrapError(err);
+  }
 }

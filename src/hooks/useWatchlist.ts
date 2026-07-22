@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { WatchlistItem } from "../types";
 import * as db from "../lib/db";
 import { supabase } from "../lib/supabase";
 
+let watchlistHookCounter = 0;
+
 export function useWatchlist(coupleId: string | null) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelIdRef = useRef<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!coupleId) {
@@ -31,8 +34,13 @@ export function useWatchlist(coupleId: string | null) {
   useEffect(() => {
     if (!coupleId) return;
 
+    if (!channelIdRef.current) {
+      watchlistHookCounter++;
+      channelIdRef.current = `watchlist-hook-${coupleId}-${watchlistHookCounter}`;
+    }
+
     const channel = supabase
-      .channel(`watchlist-${coupleId}`)
+      .channel(channelIdRef.current)
       .on(
         "postgres_changes",
         {

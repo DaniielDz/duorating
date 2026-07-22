@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
   Image,
   RefreshControl,
   TouchableOpacity,
@@ -16,6 +15,9 @@ import { tmdb } from "../../lib/tmdb";
 import { supabase } from "../../lib/supabase";
 import { useMediaDetails } from "../../hooks/useMediaDetails";
 import { DetailModal } from "../../components/search/DetailModal";
+import { DashboardSkeleton } from "../../components/ui/Skeleton";
+import { useToast } from "../../components/ui/Toast";
+import { subscribeToChanges } from "../../hooks/useSupabaseQuery";
 
 interface Stats {
   totalRated: number;
@@ -26,10 +28,12 @@ interface Stats {
 
 export default function HomeScreen() {
   const { couple, user } = useAuth();
+  const { showToast } = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentRatings, setRecentRatings] = useState<Rating[]>([]);
   const [recentWatchlist, setRecentWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<{ id: number; mediaType: "movie" | "tv" } | null>(null);
   const { data: details, loading: detailsLoading } = useMediaDetails(
     selectedDetail?.id ?? null,
@@ -46,6 +50,7 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     if (!couple) return;
+    setError(null);
     try {
       const [s, r, w] = await Promise.all([
         db.getDashboardStats(couple.id),
@@ -55,8 +60,10 @@ export default function HomeScreen() {
       setStats(s);
       setRecentRatings(r);
       setRecentWatchlist(w);
-    } catch {
-      // ignore
+    } catch (err) {
+      const msg = err instanceof db.DBError ? err.message : "Error al cargar el dashboard";
+      setError(msg);
+      showToast("error", msg);
     } finally {
       setLoading(false);
     }
@@ -71,32 +78,12 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!couple) return;
 
-    const channel = supabase
-      .channel(`dashboard-${couple.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ratings",
-          filter: `couple_id=eq.${couple.id}`,
-        },
-        () => fetchData(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "watchlist",
-          filter: `couple_id=eq.${couple.id}`,
-        },
-        () => fetchData(),
-      )
-      .subscribe();
+    const unsub1 = subscribeToChanges("ratings", couple.id, fetchData);
+    const unsub2 = subscribeToChanges("watchlist", couple.id, fetchData);
 
     return () => {
-      supabase.removeChannel(channel);
+      unsub1();
+      unsub2();
     };
   }, [couple, fetchData]);
 
@@ -108,10 +95,22 @@ export default function HomeScreen() {
   };
 
   if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (error && !stats) {
     return (
-      <ScrollView className="flex-1 bg-white" contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </ScrollView>
+      <View className="flex-1 items-center justify-center bg-white px-8">
+        <Text className="text-5xl mb-4">⚠️</Text>
+        <Text className="text-xl font-bold text-gray-900 mb-2">Error al cargar</Text>
+        <Text className="text-gray-500 text-center mb-8 leading-6">{error}</Text>
+        <TouchableOpacity
+          className="bg-blue-500 rounded-xl py-4 px-10 active:bg-blue-600"
+          onPress={fetchData}
+        >
+          <Text className="text-white font-semibold text-base">Reintentar</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 

@@ -4,9 +4,11 @@ import { Link } from "expo-router";
 import { useAuth } from "../../context/auth";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { useToast } from "../../components/ui/Toast";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,6 +27,7 @@ export default function LoginScreen() {
 
     if (result.error) {
       setError(result.error);
+      showToast("error", result.error);
     }
   };
 

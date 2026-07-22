@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import { Session, User, AuthError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Couple } from "../types";
 
@@ -21,6 +21,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [couple, setCouple] = useState<Couple | null>(null);
   const [loading, setLoading] = useState(true);
+  const sessionExpiredRef = useRef(false);
+
+  const handleSessionExpired = () => {
+    if (sessionExpiredRef.current) return;
+    sessionExpiredRef.current = true;
+    supabase.auth.signOut();
+    setCouple(null);
+  };
 
   const fetchCouple = async (userId: string) => {
     const { data, error } = await supabase
@@ -30,9 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
 
     if (error) {
+      if (error.code === "PGRST301" || error.code === "401") {
+        handleSessionExpired();
+      }
       console.error("Error fetching couple:", error);
     }
-    console.log("fetchCouple result for", userId, ":", data);
     setCouple(data);
   };
 

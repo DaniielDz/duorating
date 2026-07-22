@@ -18,10 +18,13 @@ import { useMediaDetails } from "../../hooks/useMediaDetails";
 import { WatchlistItem, Rating } from "../../types";
 import { tmdb } from "../../lib/tmdb";
 import * as db from "../../lib/db";
+import { useToast } from "../../components/ui/Toast";
+import { ListSkeleton } from "../../components/ui/Skeleton";
 
 export default function WatchlistScreen() {
   const { couple, user } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
   const { items, loading, remove, refresh } = useWatchlist(couple?.id ?? null);
 
   const [mediaFilter, setMediaFilter] = useState<"all" | "movie" | "tv">("all");
@@ -34,18 +37,22 @@ export default function WatchlistScreen() {
   );
 
   const [ratingsMap, setRatingsMap] = useState<Map<string, Rating>>(new Map());
+  const [ratingsError, setRatingsError] = useState<string | null>(null);
 
   const isUser1 = user?.id === couple?.user_1_id;
 
   const loadRatingsMap = useCallback(async () => {
     if (!couple?.id) return;
+    setRatingsError(null);
     try {
       const ratings = await db.getRatingsHistory(couple.id, user?.id ?? "", couple.user_1_id ?? "", couple.user_2_id ?? "");
       const map = new Map<string, Rating>();
       ratings.forEach((r) => map.set(`${r.tmdb_id}_${r.media_type}`, r));
       setRatingsMap(map);
-    } catch {
-      // ignore
+    } catch (err) {
+      const msg = err instanceof db.DBError ? err.message : "Error al cargar calificaciones";
+      setRatingsError(msg);
+      showToast("error", msg);
     }
   }, [couple?.id, user?.id, couple?.user_1_id, couple?.user_2_id]);
 
@@ -65,17 +72,29 @@ export default function WatchlistScreen() {
   }, []);
 
   const handleRemove = useCallback(
+    async (item: WatchlistItem) => {
+      try {
+        await remove(item.id);
+        showToast("success", `"${item.title}" quitado de pendientes`);
+      } catch {
+        showToast("error", "No se pudo quitar de pendientes");
+      }
+    },
+    [remove, showToast],
+  );
+
+  const handleConfirmRemove = useCallback(
     (item: WatchlistItem) => {
       Alert.alert("Quitar de pendientes", `¿Quitar "${item.title}" de la lista?`, [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Quitar",
           style: "destructive",
-          onPress: () => remove(item.id),
+          onPress: () => handleRemove(item),
         },
       ]);
     },
-    [remove],
+    [handleRemove],
   );
 
   const handleMarkAsWatched = useCallback((item: WatchlistItem) => {
@@ -105,13 +124,15 @@ export default function WatchlistScreen() {
         });
         loadRatingsMap();
         setRatingTarget(null);
-      } catch {
-        Alert.alert("Error", "No se pudo guardar la calificación");
+        showToast("success", "Calificación guardada");
+      } catch (err) {
+        const msg = err instanceof db.DBError ? err.message : "No se pudo guardar la calificación";
+        showToast("error", msg);
       } finally {
         setSavingRating(false);
       }
     },
-    [ratingTarget, couple, user],
+    [ratingTarget, couple, user, showToast],
   );
 
   const filteredItems = (mediaFilter === "all" ? items : items.filter((i) => i.media_type === mediaFilter))
@@ -124,11 +145,7 @@ export default function WatchlistScreen() {
     });
 
   if (loading && items.length === 0) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </View>
-    );
+    return <ListSkeleton count={4} />;
   }
 
   if (items.length === 0) {
@@ -287,7 +304,7 @@ export default function WatchlistScreen() {
                   {!iRated && !partnerRated && (
                     <TouchableOpacity
                       className="bg-red-100 rounded-lg py-2.5 px-3 items-center active:bg-red-200"
-                      onPress={() => handleRemove(item)}
+                      onPress={() => handleConfirmRemove(item)}
                     >
                       <Text className="text-red-500 text-sm font-semibold">🗑️</Text>
                     </TouchableOpacity>
