@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
+import { BackHandler } from "react-native";
 import { useAuth } from "../../context/auth";
 import { supabase } from "../../lib/supabase";
-import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
+import { GradientBackground } from "../../components/ui/gradient-background";
 import { useToast } from "../../components/ui/Toast";
+import { ChooseMode } from "../../components/invite/choose-mode";
+import { WaitingMode } from "../../components/invite/waiting-mode";
+import { EnterMode } from "../../components/invite/enter-mode";
+
+const CODE_EXPIRY_MINUTES = 10;
 
 function generateCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -27,9 +24,16 @@ export default function LinkScreen() {
   const { showToast } = useToast();
   const [mode, setMode] = useState<"choose" | "waiting" | "enter">("choose");
   const [inviteCode, setInviteCode] = useState("");
-  const [inputCode, setInputCode] = useState("");
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const isCodeValid = inviteCode && expiresAt && new Date(expiresAt).getTime() > Date.now();
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (mode !== "waiting" || !inviteCode) return;
@@ -47,7 +51,7 @@ export default function LinkScreen() {
         },
         async () => {
           await refreshCouple();
-        }
+        },
       )
       .subscribe();
 
@@ -57,22 +61,34 @@ export default function LinkScreen() {
   }, [mode, inviteCode]);
 
   const handleGenerate = async () => {
+    if (isCodeValid) {
+      setMode("waiting");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
       const code = generateCode();
+      const newExpiresAt = new Date(
+        Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000,
+      ).toISOString();
+
       const { error: dbError } = await supabase.from("couples").insert({
         user_1_id: user!.id,
         invite_code: code,
+        expires_at: newExpiresAt,
       });
 
       if (dbError) throw dbError;
 
       setInviteCode(code);
+      setExpiresAt(newExpiresAt);
       setMode("waiting");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al generar código";
+      const msg =
+        err instanceof Error ? err.message : "Error al generar código";
       setError(msg);
       showToast("error", msg);
     } finally {
@@ -80,27 +96,25 @@ export default function LinkScreen() {
     }
   };
 
-  const handleEnterCode = async () => {
-    setError("");
-    const code = inputCode.trim().toUpperCase();
-
-    if (code.length !== 6) {
-      setError("El código debe tener 6 caracteres");
-      return;
-    }
-
+  const handleEnterCode = async (code: string) => {
     setLoading(true);
 
     try {
+      const now = new Date().toISOString();
       const { data, error: fetchError } = await supabase
         .from("couples")
         .select("*")
         .eq("invite_code", code)
         .is("user_2_id", null)
+        .gt("expires_at", now)
         .maybeSingle();
 
       if (fetchError || !data) {
-        throw new Error("Código no válido o ya fue usado");
+        throw new Error("Código no válido, expiró o ya fue usado");
+      }
+
+      if (data.user_1_id === user!.id) {
+        throw new Error("No puedes vincularte con tu propio código");
       }
 
       const { error: updateError } = await supabase
@@ -120,120 +134,48 @@ export default function LinkScreen() {
     }
   };
 
-  if (mode === "waiting") {
-    return (
-      <View className="flex-1 justify-center items-center bg-white p-6">
-        <Text className="text-2xl font-bold mb-4">Comparte este código</Text>
-        <Text className="text-gray-500 mb-6 text-center">
-          Pásale este código a tu pareja para vincularse
-        </Text>
-        <View className="bg-gray-100 rounded-xl px-8 py-6 mb-6">
-          <Text className="text-4xl font-mono font-bold tracking-wide text-center">
-            {inviteCode}
-          </Text>
-        </View>
-        <ActivityIndicator size="small" color="#3B82F6" />
-        <Text className="text-gray-400 mt-3">Esperando a tu pareja...</Text>
-        <TouchableOpacity className="mt-8" onPress={() => setMode("choose")}>
-          <Text className="text-blue-500">Volver</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const handleBackToChoose = () => {
+    setMode("choose");
+    setError("");
+  };
 
-  if (mode === "choose") {
-    return (
-      <View className="flex-1 justify-center items-center bg-white p-6">
-        <Text className="text-2xl font-bold mb-2">Vincular Pareja</Text>
-        <Text className="text-gray-500 mb-8 text-center">
-          ¿Cómo quieres vincularte?
-        </Text>
+  const handleGenerateNew = async () => {
+    setInviteCode("");
+    setExpiresAt(null);
+    await handleGenerate();
+  };
 
-        {error ? (
-          <Text className="text-red-500 text-sm mb-4 text-center">{error}</Text>
-        ) : null}
-
-        <TouchableOpacity
-          className={`w-full bg-blue-500 rounded-xl p-5 mb-4 flex-row items-center justify-center ${
-            loading ? "opacity-50" : ""
-          }`}
-          onPress={handleGenerate}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View>
-              <Text className="text-white text-center font-semibold text-lg">
-                Generar código
-              </Text>
-              <Text className="text-blue-100 text-center text-sm mt-1">
-                Yo creo el código para mi pareja
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="w-full bg-gray-100 rounded-xl p-5"
-          onPress={() => {
+  return (
+    <GradientBackground>
+      {mode === "choose" && (
+        <ChooseMode
+          onGenerate={handleGenerate}
+          onEnterCode={() => {
             setError("");
             setMode("enter");
           }}
-          disabled={loading}
-        >
-          <Text className="text-gray-800 text-center font-semibold text-lg">
-            Ingresar código
-          </Text>
-          <Text className="text-gray-500 text-center text-sm mt-1">
-            Tengo el código de mi pareja
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="mt-8"
-          onPress={signOut}
-          disabled={loading}
-        >
-          <Text className="text-gray-400">Cerrar sesión</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
-      <View className="flex-1 justify-center items-center bg-white p-6">
-        <Text className="text-2xl font-bold mb-2">Ingresar código</Text>
-        <Text className="text-gray-500 mb-8 text-center">
-          Escribe el código de 6 caracteres que te dio tu pareja
-        </Text>
-
-        <Input
-          value={inputCode}
-          onChangeText={setInputCode}
-          placeholder="ABC123"
-          autoCapitalize="characters"
-          maxLength={6}
+          onSignOut={signOut}
+          loading={loading}
+          error={error}
         />
+      )}
 
-        {error ? (
-          <Text className="text-red-500 text-sm mb-4 w-full">{error}</Text>
-        ) : null}
+      {mode === "waiting" && (
+        <WaitingMode
+          inviteCode={inviteCode}
+          expiresAt={expiresAt!}
+          onBack={handleBackToChoose}
+          onGenerateNew={handleGenerateNew}
+        />
+      )}
 
-        <Button
-          title="Vincular"
-          onPress={handleEnterCode}
+      {mode === "enter" && (
+        <EnterMode
+          onBack={handleBackToChoose}
+          onSubmit={handleEnterCode}
           loading={loading}
         />
-
-        <TouchableOpacity className="mt-6" onPress={() => setMode("choose")}>
-          <Text className="text-gray-500">Volver</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      )}
+    </GradientBackground>
   );
 }
