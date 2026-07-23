@@ -35,13 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .from("couples")
       .select("*")
       .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
+      .not("user_2_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (error) {
       if (error.code === "PGRST301" || error.code === "401") {
         handleSessionExpired();
       }
-      console.error("Error fetching couple:", error);
+      if (error.code !== "PGRST116") {
+        console.error("Error fetching couple:", error);
+      }
     }
     setCouple(data);
   };
