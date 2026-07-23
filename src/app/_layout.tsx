@@ -44,7 +44,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(main)" options={{ headerShown: false }} />
       <Stack.Screen
         name="couple/link"
-        options={{ headerShown: false, presentation: "modal" }}
+        options={{ headerShown: false, presentation: "modal", gestureEnabled: false }}
       />
       <Stack.Screen
         name="couple/settings"

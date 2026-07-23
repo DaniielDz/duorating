@@ -7,6 +7,7 @@ export interface Couple {
   user_1_id: string;
   user_2_id: string | null;
   invite_code: string;
+  expires_at: string;
   created_at: string;
 }
 
